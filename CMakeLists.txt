@@ -7,6 +7,7 @@ set(WIDGET GtkWidget*)
 set(EVENT GdkEvent*)
 
 set (CMAKE_CXX_STANDARD 11)
+set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
 # Only interpret if() arguments as variables or keywords when unquoted.
 cmake_policy(SET CMP0054 NEW)
@@ -48,7 +49,7 @@ string(TOLOWER ${PROJECT_NAME} PROJECT_NAME_LOWER)
 
 # ############################################################################
 # these will be removed after upgrading CMake minimum version to 3.9.6
-set(PROJECT_DESCRIPTION   "SoGtk is a GTK2 Gui-toolkit binding for Coin")
+set(PROJECT_DESCRIPTION   "SoGtk is a GTK3 Gui-toolkit binding for Coin")
 # ############################################################################
  
 string(TIMESTAMP SO${GUI}_BUILD_YEAR "%Y")
@@ -130,15 +131,15 @@ report_prepare(
 # Fail early if one of the required packages cannot be found
 
 find_package(OpenGL REQUIRED)
-include(FindGTK2)
-find_package(GTK2 REQUIRED gtk)
+include(FindGTK3)
+find_package(GTK3 REQUIRED gtk)
 
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules (
-        GTK_GL2   # variable will be used by cmake
-        REQUIRED        # is required mandatory
-        gtkgl-2.0  # name of package to be found
+        GTK_GL3    # variable will be used by cmake
+        REQUIRED   # is required mandatory
+#        gtkgl-3.0  # name of package to be found
 )
 
 # On Mac OS X, GLX is provided as a separate OpenGL implementation, different
@@ -255,7 +256,7 @@ elseif(APPLE)
     set(SO${GUI}_MAC_FRAMEWORK ${SO${GUI}_BUILD_MAC_FRAMEWORK})
     set(SO${GUI}_MAC_FRAMEWORK_NAME "SoGtk")
     set(SO${GUI}_MAC_FRAMEWORK_PREFIX "${CMAKE_INSTALL_PREFIX}")
-    set(SO${GUI}_MAC_FRAMEWORK_VERSION "A") # SoGTK2 will be "B", to allow parallel installations of SoGtk1
+    set(SO${GUI}_MAC_FRAMEWORK_VERSION "A") # SoGTK3 will be "B", to allow parallel installations of SoGtk1
     set(PACKAGING_FRAMEWORK_NAME "${SO${GUI}_MAC_FRAMEWORK_NAME}")
 
     # package config *.pc entries

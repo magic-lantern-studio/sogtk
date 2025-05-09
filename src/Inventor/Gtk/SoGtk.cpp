@@ -210,25 +210,39 @@ SoGuiP::sensorQueueChanged(void *)
   static guint idleid = 0;
   static guint delayid = 0;
 
-  if (timerid) gtk_timeout_remove(timerid); timerid = 0;
-  if (idleid) gtk_idle_remove(idleid); idleid = 0;
-  if (delayid) gtk_timeout_remove(delayid); delayid = 0;
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+  //if (timerid) gtk_timeout_remove(timerid); timerid = 0;
+  if (timerid) g_source_remove(timerid); timerid = 0;
+  // Todo: Fix this to switch on GTK3 vs GTK2
+  //if (idleid) gtk_idle_remove(idleid); idleid = 0;
+  if (idleid) g_source_remove(idleid); idleid = 0;
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+  //if (delayid) gtk_timeout_remove(delayid); delayid = 0;
+  if (delayid) g_source_remove(delayid); delayid = 0;
 
   // Set up timer queue timeout if necessary.
 
   SbTime t;
   if (sm->isTimerSensorPending(t)) {
     SbTime interval = t - SbTime::getTimeOfDay();
-    timerid = gtk_timeout_add(int(interval.getValue() * 1000.0),
-                              (GtkFunction)SoGtk::timerSensorCB, NULL);
+    // ToDo: Fix this to switch on GTK3 vs GTK2
+    //timerid = gtk_timeout_add(int(interval.getValue() * 1000.0),
+    //                          (GtkFunction)SoGtk::timerSensorCB, NULL);
+    timerid = g_timeout_add(int(interval.getValue() * 1000.0),
+                            (GSourceFunc)SoGtk::timerSensorCB, NULL);
   }
 
   // Set up idle notification for delay queue processing if necessary.
 
   if (sm->isDelaySensorPending()) {
-    idleid = gtk_idle_add((GtkFunction)SoGtk::idleSensorCB, NULL);
-    delayid = gtk_timeout_add(SoDB::getDelaySensorTimeout().getMsecValue(), 
-			      (GtkFunction)SoGtk::delaySensorCB, NULL);
+    // ToDo: Fix this to switch on GTK3 vs GTK2
+    //idleid = gtk_idle_add((GtkFunction)SoGtk::idleSensorCB, NULL);
+    idleid = g_idle_add((GSourceFunc)SoGtk::idleSensorCB, NULL);
+    // ToDo: Fix this to switch on GTK3 vs GTK2
+    //delayid = gtk_timeout_add(SoDB::getDelaySensorTimeout().getMsecValue(), 
+    //		      (GtkFunction)SoGtk::delaySensorCB, NULL);
+    delayid = g_timeout_add(SoDB::getDelaySensorTimeout().getMsecValue(), 
+			    (GSourceFunc)SoGtk::delaySensorCB, NULL);
   }
 
 }
@@ -305,7 +319,9 @@ SoGtk::getShellWidget(const GtkWidget * widget)
 #endif // SOGTK_DEBUG
 
   GtkWidget * w = gtk_widget_get_toplevel(GTK_WIDGET(widget));
-  return GTK_WIDGET_TOPLEVEL(w) ? w : (GtkWidget *)0;
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+  //return GTK_WIDGET_TOPLEVEL(w) ? w : (GtkWidget *)0;
+  return gtk_widget_is_toplevel(w) ? w : (GtkWidget *)0;
 }
 
 // *************************************************************************
@@ -369,7 +385,9 @@ SoGtk::setWidgetSize(GtkWidget * const widget,
     return;
   }
   GtkRequisition req = { size[0], size[1] };
-  gtk_widget_size_request(GTK_WIDGET(widget), &req);
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+  //gtk_widget_size_request(GTK_WIDGET(widget), &req);
+  gtk_widget_get_preferred_size(GTK_WIDGET(widget), NULL, &req);
 }
 
 // *************************************************************************
@@ -391,7 +409,12 @@ SoGtk::getWidgetSize(const GtkWidget * widget)
     return SbVec2s(0, 0);
   }
 #endif // SOGTK_DEBUG
-  return SbVec2s(widget->allocation.width, widget->allocation.height);
+
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+  //return SbVec2s(widget->allocation.width, widget->allocation.height);
+  GtkAllocation size;
+  gtk_widget_get_allocation(const_cast<GtkWidget *>(widget), &size);
+  return SbVec2s(size.width, size.height);
 }
 
 // *************************************************************************
@@ -434,10 +457,14 @@ SoGtk::createSimpleErrorDialog(GtkWidget * widget,
   gtk_window_set_title(GTK_WINDOW(dialog), t.getString());
   gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_MOUSE);
 
-  GtkWidget *action_area = GTK_DIALOG(dialog)->action_area;
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+  //GtkWidget *action_area = GTK_DIALOG(dialog)->action_area;
+  GtkWidget *action_area = gtk_dialog_get_action_area(GTK_DIALOG(dialog));
 
-  GtkWidget *vbox = GTK_DIALOG(dialog)->vbox ;
-
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+  //GtkWidget *vbox = GTK_DIALOG(dialog)->vbox ;
+  GtkWidget *vbox = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+ 
   GtkWidget *label = gtk_label_new(errstr.getString());
   gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
   gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 10);
@@ -452,9 +479,13 @@ SoGtk::createSimpleErrorDialog(GtkWidget * widget,
   gtk_widget_show(okbutton);
   gtk_box_pack_start(GTK_BOX(action_area), okbutton, FALSE, FALSE, 2);
 
-  gtk_signal_connect_object(GTK_OBJECT(okbutton), "clicked",
-                            GTK_SIGNAL_FUNC(gtk_widget_destroy),
-                            GTK_OBJECT(dialog));
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+  //gtk_signal_connect_object(GTK_OBJECT(okbutton), "clicked",
+  //                          GTK_SIGNAL_FUNC(gtk_widget_destroy),
+  //                          GTK_OBJECT(dialog));
+  g_signal_connect_object(G_OBJECT(okbutton), "clicked",
+                          G_CALLBACK(gtk_widget_destroy),
+                          G_OBJECT(dialog), G_CONNECT_AFTER);
 
   gtk_widget_show_all(dialog);
 }

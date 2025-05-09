@@ -133,11 +133,17 @@ SoGtkComponent::SoGtkComponent(GtkWidget * const parent,
     PRIVATE(this)->embedded = TRUE;
   }
 
-  gtk_signal_connect(GTK_OBJECT(PRIVATE(this)->parent), "event",
-                     GTK_SIGNAL_FUNC(SoGtkComponent::eventHandler),
-                     (gpointer) this);
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+  //gtk_signal_connect(GTK_OBJECT(PRIVATE(this)->parent), "event",
+  //                   GTK_SIGNAL_FUNC(SoGtkComponent::eventHandler),
+  //                   (gpointer) this);
+  g_signal_connect(G_OBJECT(PRIVATE(this)->parent), "event",
+                   G_CALLBACK(SoGtkComponent::eventHandler),
+                   (gpointer) this);
 
-  gtk_idle_add((GtkFunction) SoGtk::componentCreation, (gpointer) this);
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+  //gtk_idle_add((GtkFunction) SoGtk::componentCreation, (gpointer) this);
+  g_idle_add((GSourceFunc) SoGtk::componentCreation, (gpointer) this);
 }
 
 /*!
@@ -245,9 +251,14 @@ void
 SoGtkComponent::setBaseWidget(GtkWidget * widget)
 {
   if (PRIVATE(this)->widget) {
-    gtk_signal_disconnect_by_func(GTK_OBJECT(PRIVATE(this)->widget),
-                                  GTK_SIGNAL_FUNC(SoGtkComponentP::realizeHandlerCB),
-                                  (gpointer) this);
+    // ToDo: Fix this to switch on GTK3 vs GTK2
+    //gtk_signal_disconnect_by_func(GTK_OBJECT(PRIVATE(this)->widget),
+    //                              GTK_SIGNAL_FUNC(SoGtkComponentP::realizeHandlerCB),
+    //                              (gpointer) this);
+    g_signal_handlers_disconnect_by_func(G_OBJECT(PRIVATE(this)->widget),
+                                         SoGtkComponentP::realizeHandlerCB,
+                                         this);
+
     this->unregisterWidget(PRIVATE(this)->widget);
   }
 
@@ -267,9 +278,15 @@ SoGtkComponent::setBaseWidget(GtkWidget * widget)
     // so the widget will have a window when the afterRealizeHook()
     // method is invoked. (Which again is necessary for being able to
     // set a cursor on the widget in that callback.)
-    gtk_signal_connect(GTK_OBJECT(PRIVATE(this)->widget), "map",
-                       GTK_SIGNAL_FUNC(SoGtkComponentP::realizeHandlerCB),
-                       (gpointer) this);
+
+    // ToDo: Fix this to switch on GTK3 vs GTK2
+    //gtk_signal_connect(GTK_OBJECT(PRIVATE(this)->widget), "map",
+    //                   GTK_SIGNAL_FUNC(SoGtkComponentP::realizeHandlerCB),
+    //                   (gpointer) this);
+    g_signal_connect(G_OBJECT(PRIVATE(this)->widget), "map",
+                     G_CALLBACK(SoGtkComponentP::realizeHandlerCB),
+                     (gpointer) this);
+
     this->registerWidget(PRIVATE(this)->widget);
   }
 }
@@ -309,7 +326,8 @@ static const char * gdk_event_name(GdkEventType type) {
   case GDK_DROP_FINISHED:     return "GDK_DROP_FINISHED";
   case GDK_CLIENT_EVENT:      return "GDK_CLIENT_EVENT";
   case GDK_VISIBILITY_NOTIFY: return "GDK_VISIBILITY_NOTIFY";
-  case GDK_NO_EXPOSE:         return "GDK_NO_EXPOSE";
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+  //case GDK_NO_EXPOSE:         return "GDK_NO_EXPOSE";
   default:
     break;
   }
@@ -341,7 +359,9 @@ SoGtkComponent::eventFilter(GtkWidget * obj, GdkEvent * ev)
     return FALSE;
 
   case GDK_CONFIGURE:
-    if(GTK_WIDGET_REALIZED(this->getBaseWidget())) {
+    // ToDo: Fix this to switch on GTK3 vs GTK2
+    //if(GTK_WIDGET_REALIZED(this->getBaseWidget())) {
+    if(gtk_widget_get_realized(this->getBaseWidget())) {
       GdkEventConfigure * event = (GdkEventConfigure *) ev;
       SbVec2s size(event->width, event->height);
       PRIVATE(this)->storeSize.setValue(event->width, event->height);
@@ -395,7 +415,10 @@ SoGtkComponent::isVisible(void)
   if (! this->getBaseWidget()) { return FALSE; }
   // FIXME - return true visibility state. 200????? larsa.
   // Close, but probably still incomplete
-  return GTK_WIDGET_DRAWABLE(this->getBaseWidget()) ? TRUE : FALSE;
+
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+  //return GTK_WIDGET_DRAWABLE(this->getBaseWidget()) ? TRUE : FALSE;
+  return gtk_widget_is_drawable(this->getBaseWidget()) ? TRUE : FALSE;
 }
 
 /*!
@@ -420,7 +443,9 @@ SoGtkComponent::show(void)
   assert(parent != NULL);
   assert(widget != NULL);
 
-  if (! widget->parent)
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+  //if (! widget->parent)
+  if (! gtk_widget_get_parent(widget))
     gtk_container_add(GTK_CONTAINER(parent), widget);
 
   if (PRIVATE(this)->storeSize != SbVec2s(-1, -1) && GTK_IS_WINDOW(parent)) {
@@ -430,7 +455,9 @@ SoGtkComponent::show(void)
   }
 
   if (PRIVATE(this)->shelled) {
-    if (! GTK_WIDGET_REALIZED(this->getBaseWidget())) {
+    // ToDo: Fix this to switch on GTK3 vs GTK2
+    //if (! GTK_WIDGET_REALIZED(this->getBaseWidget())) {
+    if (! gtk_widget_get_realized(this->getBaseWidget())) {
       gtk_widget_show(widget);
     }
     gtk_widget_show(parent);
@@ -511,14 +538,18 @@ SoGtkComponent::isTopLevelShell(void) const
   }
 #endif // SOGTK_DEBUG
 
-  if (PRIVATE(this)->widget->parent == 0)
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+  //if (PRIVATE(this)->widget->parent == 0)
+  if (gtk_widget_get_parent(PRIVATE(this)->widget) == 0)
   {
     // FIXME: Dunno if this can happen. 200????? larsa.
     SoDebugError::postWarning("SoGtkComponent::isTopLevelShell",
                               "No parent.");
   }
   else {
-    if (PRIVATE(this)->widget->parent == gtk_widget_get_toplevel(PRIVATE(this)->widget)) {
+    // ToDo: Fix this to switch on GTK3 vs GTK2    
+    //if (PRIVATE(this)->widget->parent == gtk_widget_get_toplevel(PRIVATE(this)->widget)) {
+    if (gtk_widget_get_parent(PRIVATE(this)->widget) == gtk_widget_get_toplevel(PRIVATE(this)->widget)) {
       return TRUE;
     }
     else {
@@ -602,7 +633,9 @@ SoGtkComponent::setIconTitle(const char * const title)
   if (PRIVATE(this)->widget) {
     GtkWidget * window = gtk_widget_get_toplevel(PRIVATE(this)->widget);
     assert(window != NULL);
-    gdk_window_set_icon_name((GTK_WIDGET(PRIVATE(this)->parent))->window,(char*)( title ? title : ""));
+    // ToDo: Fix this to switch on GTK3 vs GTK2
+    //gdk_window_set_icon_name((GTK_WIDGET(PRIVATE(this)->parent))->window,(char*)( title ? title : ""));
+    gdk_window_set_icon_name(gtk_widget_get_window((GTK_WIDGET(PRIVATE(this)->parent))),(char*)( title ? title : ""));
 #if 0
     gdk_window_set_icon_name(window->window,(char*)( title ? title : ""));
 #endif
@@ -665,12 +698,16 @@ SoGtkComponent::setSize(const SbVec2s size)
   if (! PRIVATE(this)->embedded) {
     if (PRIVATE(this)->parent) {
       GtkRequisition req = { size[0], size[1] };
-      gtk_widget_size_request(GTK_WIDGET(PRIVATE(this)->parent), &req);
+      // ToDo: Fix this to switch on GTK3 vs GTK2
+      //gtk_widget_size_request(GTK_WIDGET(PRIVATE(this)->parent), &req);
+      gtk_widget_get_preferred_size(GTK_WIDGET(PRIVATE(this)->parent), NULL, &req);
     }
   }
   else if (PRIVATE(this)->widget) {
     GtkRequisition req = { size[0], size[1] };
-    gtk_widget_size_request(GTK_WIDGET(PRIVATE(this)->widget), &req);
+    // ToDo: Fix this to switch on GTK3 vs GTK2
+    //gtk_widget_size_request(GTK_WIDGET(PRIVATE(this)->widget), &req);
+    gtk_widget_get_preferred_size(GTK_WIDGET(PRIVATE(this)->widget), NULL, &req);
   }
 
   PRIVATE(this)->storeSize = size;
@@ -732,9 +769,14 @@ SoGtkComponent::afterRealizeHook(void)
 #if SOGTK_DEBUG && 0
   SoDebugError::postInfo("SoGtkComponent::afterRealizeHook", "[invoked]");
 #endif
-  gtk_signal_connect(GTK_OBJECT(PRIVATE(this)->widget), "event",
-                     GTK_SIGNAL_FUNC(SoGtkComponent::eventHandler),
-                     (gpointer) this);
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+  //gtk_signal_connect(GTK_OBJECT(PRIVATE(this)->widget), "event",
+  //                   GTK_SIGNAL_FUNC(SoGtkComponent::eventHandler),
+  //                   (gpointer) this);
+  g_signal_connect(G_OBJECT(PRIVATE(this)->widget), "event",
+                   G_CALLBACK(SoGtkComponent::eventHandler),
+                   (gpointer) this);
+
   if (GTK_IS_WINDOW(PRIVATE(this)->parent)) {
     gtk_window_set_title(GTK_WINDOW(PRIVATE(this)->parent), this->getTitle());
   }
@@ -786,8 +828,10 @@ SoGtkComponentP::~SoGtkComponentP()
 /*
   event handler for realize events, used for invoking afterRealizeHook()
 */
+// ToDo: Fix this to switch on GTK3 vs GTK2
+//SoGtkComponentP::realizeHandlerCB(GtkObject * object,
 gint
-SoGtkComponentP::realizeHandlerCB(GtkObject * object,
+SoGtkComponentP::realizeHandlerCB(GObject * object,
                                   gpointer closure)
 {
   assert(closure != NULL);
@@ -798,9 +842,15 @@ SoGtkComponentP::realizeHandlerCB(GtkObject * object,
     GtkRequisition req = {
       PRIVATE(component)->storeSize[0],
       PRIVATE(component)->storeSize[1] };
-    gtk_widget_size_request(widget, &req);
+    // ToDo: Fix this to switch on GTK3 vs GTK2
+    //gtk_widget_size_request(widget, &req);
+    gtk_widget_get_preferred_size(widget, NULL, &req);
   }
-  SbVec2s size(widget->allocation.width, widget->allocation.height);
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+  //SbVec2s size(widget->allocation.width, widget->allocation.height);
+  GtkAllocation allocation;
+  gtk_widget_get_allocation(const_cast<GtkWidget *>(widget), &allocation);
+  SbVec2s size(allocation.width, allocation.height);
   component->sizeChanged(size);
   component->afterRealizeHook();
   return FALSE;
@@ -834,11 +884,16 @@ SoGtkComponent::setFullScreen(const SbBool onoff)
   //   [When do I need to call gtk_widget_realize() vs. gtk_widget_show()?]
   //
   // 20020108 mortene.
-  if (!GTK_WIDGET_REALIZED(GTK_WIDGET(w))) {
+
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+  //if (!GTK_WIDGET_REALIZED(GTK_WIDGET(w))) {
+  if (! gtk_widget_get_realized(GTK_WIDGET(w))) {
     gtk_widget_realize(GTK_WIDGET(w));
   }
 
-  GdkWindow * gdk_window = GTK_WIDGET(w)->window;
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+  //GdkWindow * gdk_window = GTK_WIDGET(w)->window;
+  GdkWindow * gdk_window = gtk_widget_get_window(GTK_WIDGET(w));
 
   if (onoff) {
     // Store current window position and geometry for later resetting.
@@ -850,9 +905,13 @@ SoGtkComponent::setFullScreen(const SbBool onoff)
       gdk_window_get_root_origin(gdk_window,
                                  &PRIVATE(this)->nonfull.x,
                                  &PRIVATE(this)->nonfull.y);
-      gdk_window_get_size(gdk_window,
-                          &PRIVATE(this)->nonfull.w,
-                          &PRIVATE(this)->nonfull.h);
+      // ToDo: Fix this to switch on GTK3 vs GTK2
+      //gdk_window_get_size(gdk_window,
+      //                    &PRIVATE(this)->nonfull.w,
+      //                    &PRIVATE(this)->nonfull.h);
+      gdk_drawable_get_size(gdk_window,
+                            &PRIVATE(this)->nonfull.w,
+                            &PRIVATE(this)->nonfull.h);
     }
 
 #ifdef HAVE_XINERAMA

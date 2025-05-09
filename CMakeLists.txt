@@ -131,8 +131,8 @@ report_prepare(
 # Fail early if one of the required packages cannot be found
 
 find_package(OpenGL REQUIRED)
-include(FindGTK3)
-find_package(GTK3 REQUIRED gtk)
+include(FindGTK3_GTK)
+find_package(GTK3_GTK REQUIRED gtk)
 
 find_package(PkgConfig REQUIRED)
 
@@ -167,6 +167,10 @@ if (X11_FOUND)
     set(SOGTK_OPENGL_INCLUDE_DIRECTORIES ${X11_INCLUDE_DIR} ${OPENGL_INCLUDE_DIR})
     set(SOGTK_OPENGL_LIBRARIES ${OPENGL_LIBRARIES})
   endif ()
+endif()
+
+if(GTK3_FOUND)
+  include_directories(${GTK3_INCLUDE_DIRS})
 endif()
 
 find_package(Coin)

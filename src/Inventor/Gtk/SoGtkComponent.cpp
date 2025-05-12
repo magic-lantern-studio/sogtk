@@ -256,8 +256,8 @@ SoGtkComponent::setBaseWidget(GtkWidget * widget)
     //                              GTK_SIGNAL_FUNC(SoGtkComponentP::realizeHandlerCB),
     //                              (gpointer) this);
     g_signal_handlers_disconnect_by_func(G_OBJECT(PRIVATE(this)->widget),
-                                         SoGtkComponentP::realizeHandlerCB,
-                                         this);
+                                         (gpointer) SoGtkComponentP::realizeHandlerCB,
+                                         (gpointer) this);
 
     this->unregisterWidget(PRIVATE(this)->widget);
   }
@@ -909,9 +909,9 @@ SoGtkComponent::setFullScreen(const SbBool onoff)
       //gdk_window_get_size(gdk_window,
       //                    &PRIVATE(this)->nonfull.w,
       //                    &PRIVATE(this)->nonfull.h);
-      gdk_drawable_get_size(gdk_window,
-                            &PRIVATE(this)->nonfull.w,
-                            &PRIVATE(this)->nonfull.h);
+      gtk_window_get_size(GTK_WINDOW(w),
+			  &PRIVATE(this)->nonfull.w,
+                          &PRIVATE(this)->nonfull.h);
     }
 
 #ifdef HAVE_XINERAMA
@@ -933,8 +933,16 @@ SoGtkComponent::setFullScreen(const SbBool onoff)
     gdk_window_hide(gdk_window);
     gdk_window_set_decorations(gdk_window, (GdkWMDecoration) 0);
     gdk_window_show(gdk_window);
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+#if 0
     gdk_window_move_resize(gdk_window, 0, 0,
                            gdk_screen_width(), gdk_screen_height());
+#else
+    GdkRectangle workarea = {0};
+    gdk_monitor_get_workarea(gdk_display_get_primary_monitor(gdk_display_get_default()), &workarea);
+    gdk_window_move_resize(gdk_window, 0, 0,
+                           workarea.width, workarea.height);    
+#endif /* 0 */
   }
   else {
     gdk_window_hide(gdk_window);
@@ -981,23 +989,43 @@ SoGtkComponentP::getNativeCursor(GtkWidget * w,
   SbBool b = SoGtkComponentP::cursordict->find((unsigned long)cc, qc);
   if (b) { return (GdkCursor *)qc; }
 
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+#if 0
   GtkStyle * style = w->style;
   GdkColor fg = style->black;
   GdkColor bg = style->white;
+#else
+  // Not using foreground/background colors in GTK3.
+#endif /* 0 */
 
+#if 0
   GdkPixmap * bitmap =
     gdk_bitmap_create_from_data(NULL, (const gchar *)cc->bitmap,
                                 cc->dim[0], cc->dim[1]);
   GdkPixmap *mask =
     gdk_bitmap_create_from_data(NULL, (const gchar *)cc->mask,
                                 cc->dim[0], cc->dim[1]);
+#else
+  int stride = cairo_format_stride_for_width(CAIRO_FORMAT_A1, cc->dim[0]);
+  cairo_surface_t * surface =
+    cairo_image_surface_create_for_data(cc->bitmap, CAIRO_FORMAT_A1,
+					cc->dim[0], cc->dim[1],
+					stride);
+#endif /* 0 */
 
   // FIXME: plug memleak. 20011126 mortene.
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+#if 0
   GdkCursor * cursor =
     gdk_cursor_new_from_pixmap(bitmap, mask, &fg, &bg,
                                cc->hotspot[0], cc->hotspot[1]);
   gdk_pixmap_unref(bitmap);
   gdk_pixmap_unref(mask);
+#else
+  GdkCursor * cursor =
+    gdk_cursor_new_from_surface(gtk_widget_get_display(w), surface,
+                                cc->hotspot[0], cc->hotspot[1]);
+#endif /* 0 */
 
   SoGtkComponentP::cursordict->enter((unsigned long)cc, cursor);
   return cursor;
@@ -1018,8 +1046,9 @@ SoGtkComponent::setComponentCursor(const SoGtkCursor & cursor)
 void
 SoGtkComponent::setWidgetCursor(GtkWidget * w, const SoGtkCursor & cursor)
 {
-
-  if (GTK_WIDGET_NO_WINDOW(w)) {
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+  //if (GTK_WIDGET_NO_WINDOW(w)) {
+  if (! gtk_widget_get_has_window(w)) {
     if (SOGTK_DEBUG) {
       // FIXME: This should not happen, but there seems to be a bug in
       // SoGtk's event handling causing this. 20001219 RC.
@@ -1033,7 +1062,9 @@ SoGtkComponent::setWidgetCursor(GtkWidget * w, const SoGtkCursor & cursor)
     return;
   }
 
-  if (w->window == (GdkWindow *)NULL) {
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+  //if (w->window == (GdkWindow *)NULL) {
+  if (gtk_widget_get_window(w) == (GdkWindow *)NULL) {
     if (SOGTK_DEBUG) {
       // FIXME: This should not happen, but there seems to be a bug in
       // SoGtk's event handling causing this. 20001219 RC.
@@ -1049,16 +1080,22 @@ SoGtkComponent::setWidgetCursor(GtkWidget * w, const SoGtkCursor & cursor)
 
   if (cursor.getShape() == SoGtkCursor::CUSTOM_BITMAP) {
     const SoGtkCursor::CustomCursor * cc = &cursor.getCustomCursor();
-    gdk_window_set_cursor(w->window, SoGtkComponentP::getNativeCursor(w, cc));
+    // ToDo: Fix this to switch on GTK3 vs GTK2
+    //gdk_window_set_cursor(w->window, SoGtkComponentP::getNativeCursor(w, cc));
+    gdk_window_set_cursor(gtk_widget_get_window(w), SoGtkComponentP::getNativeCursor(w, cc));
   }
   else {
     switch (cursor.getShape()) {
     case SoGtkCursor::DEFAULT:
       if (!SoGtkComponentP::arrowcursor) {
         // FIXME: plug memleak with gdk_cursor_destroy(). 20011126 mortene.
-        SoGtkComponentP::arrowcursor = gdk_cursor_new(GDK_TOP_LEFT_ARROW);
+        // ToDo: Fix this to switch on GTK3 vs GTK2
+        //SoGtkComponentP::arrowcursor = gdk_cursor_new(GDK_TOP_LEFT_ARROW);
+        SoGtkComponentP::arrowcursor = gdk_cursor_new_for_display(gtk_widget_get_display(w), GDK_TOP_LEFT_ARROW);
       }
-      gdk_window_set_cursor(w->window, SoGtkComponentP::arrowcursor);
+      // ToDo: Fix this to switch on GTK3 vs GTK2
+      //gdk_window_set_cursor(w->window, SoGtkComponentP::arrowcursor);
+      gdk_window_set_cursor(gtk_widget_get_window(w), SoGtkComponentP::arrowcursor);
       break;
 
     case SoGtkCursor::BUSY:
@@ -1068,17 +1105,25 @@ SoGtkComponent::setWidgetCursor(GtkWidget * w, const SoGtkCursor & cursor)
     case SoGtkCursor::CROSSHAIR:
       if (!SoGtkComponentP::crosscursor) {
         // FIXME: plug memleak. 20011126 mortene.
-        SoGtkComponentP::crosscursor = gdk_cursor_new(GDK_CROSSHAIR);
+        // ToDo: Fix this to switch on GTK3 vs GTK2
+        //SoGtkComponentP::crosscursor = gdk_cursor_new(GDK_CROSSHAIR);
+	SoGtkComponentP::crosscursor = gdk_cursor_new_for_display(gtk_widget_get_display(w), GDK_CROSSHAIR);
       }
-      gdk_window_set_cursor(w->window, SoGtkComponentP::crosscursor);
+      // ToDo: Fix this to switch on GTK3 vs GTK2
+      //gdk_window_set_cursor(w->window, SoGtkComponentP::crosscursor);
+      gdk_window_set_cursor(gtk_widget_get_window(w), SoGtkComponentP::crosscursor);
       break;
 
     case SoGtkCursor::UPARROW:
       if (!SoGtkComponentP::uparrowcursor) {
         // FIXME: plug memleak. 20011126 mortene.
-        SoGtkComponentP::uparrowcursor = gdk_cursor_new(GDK_SB_UP_ARROW);
+        // ToDo: Fix this to switch on GTK3 vs GTK2
+        //SoGtkComponentP::uparrowcursor = gdk_cursor_new(GDK_SB_UP_ARROW);
+	SoGtkComponentP::uparrowcursor = gdk_cursor_new_for_display(gtk_widget_get_display(w), GDK_SB_UP_ARROW);
       }
-      gdk_window_set_cursor(w->window, SoGtkComponentP::uparrowcursor);
+      // ToDo: Fix this to switch on GTK3 vs GTK2
+      //gdk_window_set_cursor(w->window, SoGtkComponentP::uparrowcursor);
+      gdk_window_set_cursor(gtk_widget_get_window(w), SoGtkComponentP::uparrowcursor);
       break;
 
     default:

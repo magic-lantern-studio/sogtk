@@ -44,7 +44,8 @@
 
 #include <Inventor/Gtk/common/gl.h>
 
-#include <gtkgl/gtkglarea.h>
+// ToDo: Fix this to switch on GTK3 vs GTK2
+//#include <gtkgl/gtkglarea.h>
 #include <gdk/gdk.h>
 
 #include <Inventor/errors/SoDebugError.h>
@@ -93,7 +94,13 @@ SoGtkGLWidget::SoGtkGLWidget(GtkWidget * const parent,
 
   PRIVATE(this)->borderThickness = SO_BORDER_THICKNESS;
 
+// ToDo: Fix this to switch on GTK3 vs GTK2
+#if 0
   if (! gdk_gl_query()) {
+#else
+  GError *error;
+  if (! gdk_display_prepare_gl(gtk_widget_get_display(parent), &error)) {
+#endif /* 0 */
     SoDebugError::post("SoGtkGLWidget::SoGtkGLWidget", 
       _("OpenGL is not available on your display!"));
     return;
@@ -123,54 +130,80 @@ SoGtkGLWidget::buildWidget(GtkWidget * parent)
   // FIXME: Not tested, but I think it just might work. Use SbName to
   // map the display name into a constant and global pointer. Screen
   // is probably coded into the display string. pederb, 2001-06-29
-  SbName displayname(gdk_get_display());
+
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+  //SbName displayname(gdk_get_display());
+  SbName displayname(gdk_display_get_name(gdk_display_get_default()));
 
   void * display = (void*) displayname.getString();
   void * screen = NULL; // I think this is ok
   
+  // ToDo: There does not appear to be the concept of a shared GL widget in
+  // GTK3. Or a shared GL context.
   SoGtkGLWidget * sharewidget = (SoGtkGLWidget*) SoAny::si()->getSharedGLContext(display, screen);
 
   int glAttributes[16], i = 0;
 
   if (PRIVATE(this)->glModeBits & SO_GL_RGB) {
-    glAttributes[i] = GDK_GL_RGBA; i++;
+    // ToDo: Fix this to switch on GTK3 vs GTK2
+    //glAttributes[i] = GDK_GL_RGBA; i++;
   }
   if (PRIVATE(this)->glModeBits & SO_GL_DOUBLE) {
-    glAttributes[i] = GDK_GL_DOUBLEBUFFER; i++;
+    // ToDo: Fix this to switch on GTK3 vs GTK2
+    //glAttributes[i] = GDK_GL_DOUBLEBUFFER; i++;
   }
   if (PRIVATE(this)->glModeBits & SO_GL_ZBUFFER) {
-    glAttributes[i] = GDK_GL_DEPTH_SIZE; i++;
-    glAttributes[i] = 1; i++;
+    // ToDo: Fix this to switch on GTK3 vs GTK2
+    //glAttributes[i] = GDK_GL_DEPTH_SIZE; i++;
+    //glAttributes[i] = 1; i++;
   }
   if (PRIVATE(this)->glModeBits & SO_GL_STEREO) {
-    glAttributes[i] = GDK_GL_STEREO; i++;
+    // ToDo: Fix this to switch on GTK3 vs GTK2
+    //glAttributes[i] = GDK_GL_STEREO; i++;
   }
 
-  glAttributes[i] = GDK_GL_STENCIL_SIZE; i++;
-  glAttributes[i] = 1; i++;
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+  //glAttributes[i] = GDK_GL_STENCIL_SIZE; i++;
+  //glAttributes[i] = 1; i++;
 
-  glAttributes[i] = GDK_GL_NONE; i++;
+  //glAttributes[i] = GDK_GL_NONE; i++;
 
   if (sharewidget) {
-    PRIVATE(this)->glWidget = gtk_gl_area_share_new(glAttributes, (GtkGLArea*) sharewidget->getGLWidget());
+    // ToDo: Fix this to switch on GTK3 vs GTK2
+    //PRIVATE(this)->glWidget = gtk_gl_area_share_new(glAttributes, (GtkGLArea*) sharewidget->getGLWidget());
+    PRIVATE(this)->glWidget = gtk_gl_area_new();
   }
   else {
-    PRIVATE(this)->glWidget = gtk_gl_area_new(glAttributes);    
+    // ToDo: Fix this to switch on GTK3 vs GTK2
+    //PRIVATE(this)->glWidget = gtk_gl_area_new(glAttributes);    
+    PRIVATE(this)->glWidget = gtk_gl_area_new();    
   }
   assert(PRIVATE(this)->glWidget != NULL);
 
   SoAny::si()->registerGLContext((void*) this, display, screen);
 
   GtkRequisition req = { 100, 100 };
-  gtk_widget_size_request(PRIVATE(this)->glWidget, &req);
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+  //gtk_widget_size_request(PRIVATE(this)->glWidget, &req);
+  gtk_widget_get_preferred_size(PRIVATE(this)->glWidget, NULL, &req);
   
+// ToDo: Fix this to switch on GTK3 vs GTK2
+#if 0
   gtk_signal_connect(GTK_OBJECT(PRIVATE(this)->glWidget), "realize",
                       GTK_SIGNAL_FUNC(SoGtkGLWidgetP::sGLInit), (void *) this);
   gtk_signal_connect(GTK_OBJECT(PRIVATE(this)->glWidget), "configure_event",
                       GTK_SIGNAL_FUNC(SoGtkGLWidgetP::sGLReshape), (void *) this);
   gtk_signal_connect(GTK_OBJECT(PRIVATE(this)->glWidget), "expose_event",
                       GTK_SIGNAL_FUNC(SoGtkGLWidgetP::sGLDraw), (void *) this);
-  
+#else
+  g_signal_connect(G_OBJECT(PRIVATE(this)->glWidget), "realize",
+                   G_CALLBACK(SoGtkGLWidgetP::sGLInit), (void *) this);
+  g_signal_connect(G_OBJECT(PRIVATE(this)->glWidget), "configure_event",
+                   G_CALLBACK(SoGtkGLWidgetP::sGLReshape), (void *) this);
+  g_signal_connect(G_OBJECT(PRIVATE(this)->glWidget), "expose_event",
+                   G_CALLBACK(SoGtkGLWidgetP::sGLDraw), (void *) this);
+#endif /* 0 */
+
   PRIVATE(this)->container = gtk_frame_new(0);
   gtk_frame_set_shadow_type(GTK_FRAME(PRIVATE(this)->container), GTK_SHADOW_IN);
   gtk_container_set_border_width(GTK_CONTAINER(PRIVATE(this)->container),
@@ -390,7 +423,9 @@ SoGtkGLWidget::setGLSize(const SbVec2s size)
     size[1] + PRIVATE(this)->borderThickness * 2
   };
 
-  gtk_widget_size_request(GTK_WIDGET(PRIVATE(this)->container), &req);
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+  //gtk_widget_size_request(GTK_WIDGET(PRIVATE(this)->container), &req);
+  gtk_widget_get_preferred_size(GTK_WIDGET(PRIVATE(this)->container), NULL, &req);
 }
 
 // Documented in common/SoGuiGLWidgetCommon.cpp.in.
@@ -399,8 +434,12 @@ SoGtkGLWidget::getGLSize(void) const
 {
   if (! PRIVATE(this)->glWidget)
     return SbVec2s(-1, -1);
-  return SbVec2s(PRIVATE(this)->glWidget->allocation.width,
-                  PRIVATE(this)->glWidget->allocation.height);
+// ToDo: Fix this to switch on GTK3 vs GTK2
+//  return SbVec2s(PRIVATE(this)->glWidget->allocation.width,
+//                  PRIVATE(this)->glWidget->allocation.height);
+  GtkAllocation allocation;
+  gtk_widget_get_allocation(const_cast<GtkWidget *>(PRIVATE(this)->glWidget), &allocation);
+  return SbVec2s(allocation.width, allocation.height);
 }
 
 // Documented in common/SoGuiGLWidgetCommon.cpp.in.
@@ -409,8 +448,12 @@ SoGtkGLWidget::getGLAspectRatio(void) const
 {
   if (! PRIVATE(this)->glWidget)
     return 1.0f;
-  return (float) PRIVATE(this)->glWidget->allocation.width /
-    (float) PRIVATE(this)->glWidget->allocation.height;
+// ToDo: Fix this to switch on GTK3 vs GTK2
+//  return (float) PRIVATE(this)->glWidget->allocation.width /
+//    (float) PRIVATE(this)->glWidget->allocation.height;
+  GtkAllocation allocation;
+  gtk_widget_get_allocation(const_cast<GtkWidget *>(PRIVATE(this)->glWidget), &allocation);
+  return (float) allocation.width / (float) allocation.height;
 }
 
 // *************************************************************************
@@ -475,8 +518,13 @@ SoGtkGLWidgetP::sGLReshape(GtkWidget * widget,
 {
   SoGtkGLWidget * glwidget = (SoGtkGLWidget *) closure;
   PRIVATE(glwidget)->wasresized = TRUE;
-  PRIVATE(glwidget)->glSize = SbVec2s(PRIVATE(glwidget)->glWidget->allocation.width,
-                                      PRIVATE(glwidget)->glWidget->allocation.height);
+// ToDo: Fix this to switch on GTK3 vs GTK2
+//  PRIVATE(glwidget)->glSize = SbVec2s(PRIVATE(glwidget)->glWidget->allocation.width,
+//                                      PRIVATE(glwidget)->glWidget->allocation.height);
+  GtkAllocation allocation;
+  gtk_widget_get_allocation(const_cast<GtkWidget *>(PRIVATE(glwidget)->glWidget), &allocation);
+  PRIVATE(glwidget)->glSize = SbVec2s(allocation.width, allocation.height);
+  
   return TRUE;
 }
 
@@ -535,7 +583,10 @@ void
 SoGtkGLWidget::glSwapBuffers(void)
 {
   if (GTK_IS_GL_AREA(PRIVATE(this)->glWidget))
-    gtk_gl_area_swapbuffers(GTK_GL_AREA(PRIVATE(this)->glWidget));
+    // ToDo: Fix this to switch on GTK3 vs GTK2
+    //gtk_gl_area_swapbuffers(GTK_GL_AREA(PRIVATE(this)->glWidget));
+    gtk_gl_area_swap_buffers(GTK_GL_AREA(PRIVATE(this)->glWidget));
+
 }
 
 // Documented in common/SoGuiGLWidgetCommon.cpp.in.

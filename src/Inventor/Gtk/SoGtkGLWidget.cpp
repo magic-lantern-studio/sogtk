@@ -98,8 +98,10 @@ SoGtkGLWidget::SoGtkGLWidget(GtkWidget * const parent,
 #if 0
   if (! gdk_gl_query()) {
 #else
-  GError *error;
-  if (! gdk_display_prepare_gl(gtk_widget_get_display(parent), &error)) {
+  if (! gdk_gl_query()) {
+  // ToDo: Use this to switch on GTK4
+  //GError *error;
+  //if (! gdk_display_prepare_gl(gtk_widget_get_display(parent), &error)) {
 #endif /* 0 */
     SoDebugError::post("SoGtkGLWidget::SoGtkGLWidget", 
       _("OpenGL is not available on your display!"));
@@ -585,6 +587,7 @@ SoGtkGLWidget::glSwapBuffers(void)
   if (GTK_IS_GL_AREA(PRIVATE(this)->glWidget))
     // ToDo: Fix this to switch on GTK3 vs GTK2
     //gtk_gl_area_swapbuffers(GTK_GL_AREA(PRIVATE(this)->glWidget));
+    // Note that double buffering is enabled by default in GTK3
     gtk_gl_area_swap_buffers(GTK_GL_AREA(PRIVATE(this)->glWidget));
 
 }

@@ -591,11 +591,11 @@ void
 SoGtkGLWidget::glSwapBuffers(void)
 {
   if (GTK_IS_GL_AREA(PRIVATE(this)->glWidget))
+    SoDebugError::postInfo("SoGtkGLWidget::glSwapBuffers", "[invoked]");
     // ToDo: Fix this to switch on GTK3 vs GTK2
     //gtk_gl_area_swapbuffers(GTK_GL_AREA(PRIVATE(this)->glWidget));
     // Note that double buffering is enabled by default in GTK3
-    gtk_gl_area_swap_buffers(GTK_GL_AREA(PRIVATE(this)->glWidget));
-
+    //gtk_gl_area_swap_buffers(GTK_GL_AREA(PRIVATE(this)->glWidget));
 }
 
 // Documented in common/SoGuiGLWidgetCommon.cpp.in.

@@ -837,7 +837,9 @@ SoGtkComponentP::realizeHandlerCB(GObject * object,
   assert(closure != NULL);
   SoGtkComponent * const component = (SoGtkComponent *) closure;
   GtkWidget * widget = component->getBaseWidget();
-  assert(GTK_WIDGET_REALIZED(widget));
+  // ToDo: Fix this to switch on GTK3 vs GTK2
+  //assert(GTK_WIDGET_REALIZED(widget));
+  assert(gtk_widget_get_realized(widget));
   if (PRIVATE(component)->storeSize != SbVec2s(-1, -1)) {
     GtkRequisition req = {
       PRIVATE(component)->storeSize[0],

@@ -3,4 +3,5 @@
 	url = https://github.com/coin3d/soanydata
 [submodule "src/Inventor/Gtk/common"]
 	path = src/Inventor/Gtk/common
-	url = https://github.com/coin3d/sogui
+	url = https://github.com/magic-lantern-studio/sogui
+	branch = gtk3

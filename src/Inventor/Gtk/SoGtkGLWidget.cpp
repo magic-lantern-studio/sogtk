@@ -97,16 +97,21 @@ SoGtkGLWidget::SoGtkGLWidget(GtkWidget * const parent,
 // ToDo: Fix this to switch on GTK3 vs GTK2
 #if 0
   if (! gdk_gl_query()) {
-#else
-  if (! gdk_gl_query()) {
-  // ToDo: Use this to switch on GTK4
-  //GError *error;
-  //if (! gdk_display_prepare_gl(gtk_widget_get_display(parent), &error)) {
-#endif /* 0 */
     SoDebugError::post("SoGtkGLWidget::SoGtkGLWidget", 
       _("OpenGL is not available on your display!"));
     return;
   }
+#else
+  // ToDo: GTK3 does not appear to have a corresponding function.
+
+  // ToDo: Use this to support GTK4
+  //GError *error;
+  //if (! gdk_display_prepare_gl(gtk_widget_get_display(parent), &error)) {
+  //  SoDebugError::post("SoGtkGLWidget::SoGtkGLWidget", 
+  //    _("OpenGL is not available on your display!"));
+  //  return;
+  //}
+#endif /* 0 */
 
   if (! build) return;
   this->setClassName("SoGtkGLWidget");
@@ -204,6 +209,7 @@ SoGtkGLWidget::buildWidget(GtkWidget * parent)
                    G_CALLBACK(SoGtkGLWidgetP::sGLReshape), (void *) this);
   g_signal_connect(G_OBJECT(PRIVATE(this)->glWidget), "expose_event",
                    G_CALLBACK(SoGtkGLWidgetP::sGLDraw), (void *) this);
+  // Add signal for "render" callback.
 #endif /* 0 */
 
   PRIVATE(this)->container = gtk_frame_new(0);
